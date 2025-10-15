@@ -9,13 +9,15 @@ from torch_geometric.datasets import MoleculeNet
 from deepchem.splits import ScaffoldSplitter
 from deepchem.data import NumpyDataset
 
+# TODO: Generalize for other datasets in MoleculeNet
+
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-set_seed(42)
+set_seed(461)
 
 root = "data/moleculenet"
 dataset = MoleculeNet(root=root, name="BBBP")
@@ -32,3 +34,4 @@ train_idx, valid_idx, test_idx = splitter.split(dc_ds, frac_train=0.8, frac_vali
 train_set = Subset(dataset, train_idx)
 val_set   = Subset(dataset, valid_idx)
 test_set  = Subset(dataset, test_idx)
+
