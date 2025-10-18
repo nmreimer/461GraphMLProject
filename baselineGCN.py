@@ -14,7 +14,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 EPOCHS = 100
 
 class GCN(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels=128, num_layers=3, dropout=0.2):
+    def __init__(self, in_channels, hidden_channels=128, num_layers=3, dropout=0.1):
         super().__init__()
         self.convs = nn.ModuleList()
         self.convs.append(GCNConv(in_channels, hidden_channels))
@@ -33,11 +33,14 @@ class GCN(torch.nn.Module):
     def forward(self, data):
         x, edge_index, batch = data.x, data.edge_index, data.batch
         x = x.float()
+        
+        # Apply GCN layers
         for conv in self.convs:
             x = conv(x, edge_index)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
-            g = global_mean_pool(x, batch)
+        
+        g = global_mean_pool(x, batch)
 
         return self.lin(g).view(-1)
 
@@ -84,9 +87,9 @@ def train(datasets):
 
         # Get the original dataset to access num_features
         original_dataset = dataset['train_set'].dataset
-        model = GCN(in_channels=original_dataset.num_features, hidden_channels=128, num_layers=3, dropout=0.2)
+        model = GCN(in_channels=original_dataset.num_features, hidden_channels=128, num_layers=3, dropout=0.1)
         model = model.to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
         criterion = nn.BCEWithLogitsLoss()
         
         best_val_auc = 0.0
@@ -121,7 +124,13 @@ def get_probs(model, dataset):
         all_logits.append(logits.detach().cpu())
     return torch.cat(all_logits).numpy()
 
-
+def load_model(model_path):
+    model = GCN(in_channels=dataset['train_set'].num_features, hidden_channels=128, num_layers=3, dropout=0.1)
+    model = model.to(device)
+    ckpt = torch.load(model_path, map_location=device)
+    model.load_state_dict(ckpt)
+    return model
+    
 if __name__ == "__main__":
     datasets = load_datasets()
     train(datasets)
